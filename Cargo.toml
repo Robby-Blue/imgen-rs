@@ -1,0 +1,17 @@
+[package]
+name = "imgen"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+image = { version = "0.25.0", default-features = false, features = ["png"] }
+imageproc = { version = "0.25.0", default-features = false }
+
+[profile.dev]
+opt-level = 0
+debug = 0
+strip = "debuginfo"
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+opt-level = 3
