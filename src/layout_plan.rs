@@ -1,40 +1,12 @@
-use std::collections::HashMap;
 use std::fmt::Debug;
 
 use crate::component::Component;
 use crate::types::attributes::Attribute;
 use crate::types::attributes::AttributeType;
+use crate::types::attributes::Attributes;
 use crate::types::attributes::Dependency;
 use crate::types::expressions::Expression;
 use crate::types::mults::AttributeDirection;
-use crate::units::PosPx;
-use crate::units::SizePx;
-use crate::units::SizeUnit;
-
-pub struct Attributes<T> {
-    pub map: HashMap<Dependency, Attribute<T>>,
-}
-
-impl<T> Attributes<T> {
-    fn new() -> Self {
-        Attributes {
-            map: HashMap::new(),
-        }
-    }
-
-    pub fn get_computed_value(
-        &self,
-        id: &str,
-        attr_type: AttributeType,
-        attr_dir: AttributeDirection,
-    ) -> i32 {
-        self.map
-            .get(&Dependency::new(id.to_string(), attr_type, attr_dir))
-            .expect("not found")
-            .value
-            .expect("not computed yet")
-    }
-}
 
 pub struct LayoutPlan {}
 
@@ -43,7 +15,7 @@ impl LayoutPlan {
         LayoutPlan {}
     }
 
-    pub fn plan(&self, components: &Vec<LayoutComponent>) -> Attributes<SizeUnit> {
+    pub fn plan(&self, components: &Vec<LayoutComponent>) -> Attributes {
         let mut attributes = Attributes::new();
 
         for component in components {
@@ -88,7 +60,7 @@ impl LayoutPlan {
         for key in attributes.map.keys().cloned().collect::<Vec<Dependency>>() {
             let val = {
                 let attr = attributes.map.get(&key).unwrap();
-                attr.expression.evaluate(&attributes).value
+                attr.expression.evaluate(&attributes)
             };
 
             attributes.map.get_mut(&key).unwrap().value = Some(val);

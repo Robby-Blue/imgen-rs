@@ -7,6 +7,8 @@ edition = "2024"
 image = { version = "0.25.0", default-features = false, features = ["png"] }
 imageproc = { version = "0.25.0", default-features = false }
 
+glp = { git = "https://github.com/robby-Blue/glp" }
+
 [profile.dev]
 opt-level = 0
 debug = 0

@@ -1,0 +1,8 @@
+def main() {
+  root(width=50px, height=50px, id="root") {
+    rect(id="b", color=#0000FF) {
+      rect(id="c", width=50px, color=#FF0000)
+    }
+  }
+}
+

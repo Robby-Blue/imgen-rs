@@ -1,6 +1,48 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+};
 
-use crate::types::{expressions::Expression, mults::AttributeDirection, units::Unit};
+use crate::types::{expressions::Expression, mults::AttributeDirection, values::Value};
+
+pub struct Attributes {
+    pub map: HashMap<Dependency, Attribute>,
+}
+
+impl Attributes {
+    pub fn new() -> Self {
+        Attributes {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn get_computed_value(
+        &self,
+        id: &str,
+        attr_type: AttributeType,
+        attr_dir: AttributeDirection,
+    ) -> Value {
+        self.map
+            .get(&Dependency::new(id.to_string(), attr_type, attr_dir))
+            .expect("not found")
+            .value
+            .clone()
+            .expect("not computed yet")
+    }
+
+    pub fn get_computed_custom_value(&self, id: &str, name: &str) -> Value {
+        self.map
+            .get(&Dependency::new(
+                id.to_string(),
+                AttributeType::Extra(name.to_string()),
+                AttributeDirection::None,
+            ))
+            .expect("not found")
+            .value
+            .clone()
+            .expect("not computed yet")
+    }
+}
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct AttributeKey {
@@ -21,17 +63,24 @@ impl AttributeKey {
             direction,
         }
     }
+
+    pub fn new_extra(name: &str) -> Self {
+        AttributeKey::new(
+            AttributeType::Extra(name.to_string()),
+            AttributeDirection::None,
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
-pub struct Attribute<T> {
+pub struct Attribute {
     pub dependencies: HashSet<Dependency>,
-    pub expression: Expression<T>,
-    pub value: Option<i32>,
+    pub expression: Expression,
+    pub value: Option<Value>,
 }
 
-impl<T: Unit<T>> Attribute<T> {
-    pub fn new(expr: Expression<T>) -> Self {
+impl Attribute {
+    pub fn new(expr: Expression) -> Self {
         let deps = expr.get_dependencies();
 
         Attribute {
@@ -70,4 +119,5 @@ pub enum AttributeType {
     ChildPosition,
     Size,
     ChildSize,
+    Extra(String),
 }

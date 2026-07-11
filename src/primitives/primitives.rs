@@ -3,8 +3,8 @@ use imageproc::pixelops::interpolate;
 use imageproc::point::Point;
 
 use crate::renderer::RenderContext;
-use crate::units::PosPx;
-use crate::units::SizePx;
+use crate::values::PosPx;
+use crate::values::SizePx;
 use std::f64;
 
 pub trait Primitive {

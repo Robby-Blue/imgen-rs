@@ -141,6 +141,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "glp"
+version = "0.1.0"
+source = "git+https://github.com/robby-Blue/glp#0e5a28e8ef4efc7bbdbc218b83c416a26e0a7d92"
+
+[[package]]
 name = "image"
 version = "0.25.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -174,6 +179,7 @@ dependencies = [
 name = "imgen"
 version = "0.1.0"
 dependencies = [
+ "glp",
  "image",
  "imageproc",
 ]

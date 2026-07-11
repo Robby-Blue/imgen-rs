@@ -1,10 +1,7 @@
 use image::ImageBuffer;
 use image::RgbaImage;
 
-use crate::{
-    primitives::primitives::Primitive,
-    types::units::SizePx,
-};
+use crate::{primitives::primitives::Primitive, types::values::SizePx};
 
 pub struct RenderContext {
     pub image: RgbaImage,

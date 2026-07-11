@@ -51,6 +51,7 @@ pub struct Corners<T> {
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub enum AttributeDirection {
+    None,
     Horizontal,
     Vertical,
     TopLeft,

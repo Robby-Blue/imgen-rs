@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    layout_plan::{Attributes, LayoutComponentContext},
+    layout_plan::LayoutComponentContext,
     types::{
-        attributes::{Attribute, AttributeKey, AttributeType, Dependency},
+        attributes::{Attribute, AttributeKey, AttributeType, Attributes, Dependency},
         expressions::Expression,
         mults::{AttributeDirection, Directions},
     },
@@ -33,72 +33,76 @@ impl SizePx {
     }
 }
 
-#[derive(Clone)]
-pub struct UnitValue<T> {
-    pub value: i32,
-    pub unit: Option<T>,
+// TODO: turn Px into Size, add a SizeValue, with px, mm, cm, etc
+#[derive(Clone, Debug)]
+pub enum Value {
+    Px(f64),
+    Scalar(f64),
+    Text(String),
+    HexColor(u32),
 }
 
-impl<T: Unit<T>> UnitValue<T> {
-    pub fn new(value: i32, unit: T) -> Self {
-        UnitValue {
-            value,
-            unit: Some(unit),
+impl Value {
+    pub fn to_simplest(&self, attrs: &Attributes) -> Value {
+        self.clone()
+    }
+
+    pub fn evaluate_addition(&self, other: &Value) -> Value {
+        match (self, other) {
+            (Value::Scalar(v1), Value::Scalar(v2)) => Value::Scalar(v1 + v2),
+            (Value::Px(v1), Value::Px(v2)) => Value::Px(v1 + v2),
+            (Value::Text(v1), Value::Text(v2)) => Value::Text(v1.to_string() + v2),
+
+            (_, _) => panic!("bad addition"),
         }
     }
 
-    pub fn new_direct(value: i32, unit: Option<T>) -> Self {
-        UnitValue { value, unit }
+    pub fn evaluate_subtraction(&self, other: &Value) -> Value {
+        match (self, other) {
+            (Value::Scalar(v1), Value::Scalar(v2)) => Value::Scalar(v1 - v2),
+            (Value::Px(v1), Value::Px(v2)) => Value::Px(v1 - v2),
+            (_, _) => panic!("bad subtraction"),
+        }
     }
 
-    pub fn new_unitless(value: i32) -> Self {
-        UnitValue { value, unit: None }
+    pub fn evaluate_multiplication(&self, other: &Value) -> Value {
+        match (self, other) {
+            (Value::Scalar(v1), Value::Scalar(v2)) => Value::Scalar(v1 * v2),
+            (Value::Px(v1), Value::Px(v2)) => Value::Px(v1 * v2),
+            (Value::Px(v1), Value::Scalar(v2)) => Value::Px(v1 * v2),
+            (Value::Scalar(v1), Value::Px(v2)) => Value::Px(v1 * v2),
+            (_, _) => panic!("bad multiplication"),
+        }
     }
 
-    pub fn new_px(value: i32) -> UnitValue<SizeUnit> {
-        UnitValue::new(value, SizeUnit::Px)
-    }
-
-    pub fn to_simplest(&self, attrs: &Attributes<T>) -> UnitValue<T> {
-        match &self.unit {
-            Some(u) => u.to_simplest(self.value, attrs),
-            None => UnitValue::new_unitless(self.value),
+    pub fn evaluate_division(&self, other: &Value) -> Value {
+        match (self, other) {
+            (Value::Scalar(v1), Value::Scalar(v2)) => Value::Scalar(v1 / v2),
+            (Value::Px(v1), Value::Px(v2)) => Value::Px(v1 / v2),
+            (Value::Px(v1), Value::Scalar(v2)) => Value::Px(v1 / v2),
+            (_, _) => panic!("bad division"),
         }
     }
 }
 
-pub trait Unit<T> {
-    fn to_simplest(&self, value: i32, attrs: &Attributes<T>) -> UnitValue<T>;
-}
-
-#[derive(Clone)]
-pub enum SizeUnit {
-    Px,
-    Percent,
-}
-
-impl Unit<SizeUnit> for SizeUnit {
-    fn to_simplest(&self, value: i32, _attrs: &Attributes<SizeUnit>) -> UnitValue<SizeUnit> {
-        let px_count = match self {
-            SizeUnit::Px => value,
-            SizeUnit::Percent => todo!("percents, and deps for percents"),
-        };
-
-        UnitValue::<SizeUnit>::new_px(px_count)
-    }
+#[macro_export]
+macro_rules! expect_unit {
+    ($unit:path, $stream:expr) => {{
+        match $stream {
+            $unit(data) => Some(data),
+            _ => None, // TODO err handling stuff
+        }
+    }};
 }
 
 #[derive(Clone)]
 pub enum Position {
     Auto,
-    Float(Expression<SizeUnit>),
+    Float(Expression),
 }
 
 impl Directions<Position> {
-    pub fn get_attributes(
-        &self,
-        ctx: &LayoutComponentContext,
-    ) -> HashMap<AttributeKey, Attribute<SizeUnit>> {
+    pub fn get_attributes(&self, ctx: &LayoutComponentContext) -> HashMap<AttributeKey, Attribute> {
         let mut attrs = HashMap::new();
 
         attrs.insert(
@@ -125,7 +129,7 @@ impl Position {
         &self,
         direction: AttributeDirection,
         ctx: &LayoutComponentContext,
-    ) -> Expression<SizeUnit> {
+    ) -> Expression {
         match self {
             Position::Auto => Expression::Variable(Dependency::new(
                 ctx.parent_id.clone().expect("no auto without parent"),
@@ -141,14 +145,11 @@ impl Position {
 pub enum Size {
     Max,
     Min,
-    Set(Expression<SizeUnit>),
+    Set(Expression),
 }
 
 impl Directions<Size> {
-    pub fn get_attributes(
-        &self,
-        ctx: &LayoutComponentContext,
-    ) -> HashMap<AttributeKey, Attribute<SizeUnit>> {
+    pub fn get_attributes(&self, ctx: &LayoutComponentContext) -> HashMap<AttributeKey, Attribute> {
         let mut attrs = HashMap::new();
 
         attrs.insert(
@@ -175,7 +176,7 @@ impl Size {
         &self,
         direction: AttributeDirection,
         ctx: &LayoutComponentContext,
-    ) -> Expression<SizeUnit> {
+    ) -> Expression {
         match self {
             Size::Max => Expression::Variable(Dependency::new(
                 ctx.parent_id.clone().expect("max size without parent"),

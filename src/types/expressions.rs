@@ -1,14 +1,11 @@
 use std::{collections::HashSet, fmt::Debug};
 
 use crate::{
-    layout_plan::Attributes,
-    types::{
-        attributes::Dependency,
-        units::{Unit, UnitValue},
-    },
+    types::attributes::Attributes,
+    types::{attributes::Dependency, values::Value},
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Operator {
     Addition,
     Subtraction,
@@ -16,15 +13,15 @@ pub enum Operator {
     Division,
 }
 
-#[derive(Clone)]
-pub enum Expression<T> {
-    Value(UnitValue<T>),
+#[derive(Clone, Debug)]
+pub enum Expression {
+    Value(Value),
     Variable(Dependency),
-    Operation(Operation<T>),
+    Operation(Operation),
 }
 
-impl<T: Unit<T>> Expression<T> {
-    pub fn evaluate(&self, attrs: &Attributes<T>) -> UnitValue<T> {
+impl Expression {
+    pub fn evaluate(&self, attrs: &Attributes) -> Value {
         match self {
             Expression::Value(v) => v.to_simplest(attrs),
             Expression::Variable(v) => {
@@ -48,21 +45,15 @@ impl<T: Unit<T>> Expression<T> {
     }
 }
 
-impl<T> Debug for Expression<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Expression").finish()
-    }
-}
-
-#[derive(Clone)]
-pub struct Operation<T> {
-    value1: Box<Expression<T>>,
+#[derive(Clone, Debug)]
+pub struct Operation {
+    value1: Box<Expression>,
     operator: Operator,
-    value2: Box<Expression<T>>,
+    value2: Box<Expression>,
 }
 
-impl<T> Operation<T> {
-    pub fn new(value1: Box<Expression<T>>, operator: Operator, value2: Box<Expression<T>>) -> Self {
+impl Operation {
+    pub fn new(value1: Box<Expression>, operator: Operator, value2: Box<Expression>) -> Self {
         Operation {
             value1,
             operator,
@@ -71,24 +62,19 @@ impl<T> Operation<T> {
     }
 }
 
-impl<T: Unit<T>> Operation<T> {
-    pub fn evaluate(&self, attrs: &Attributes<T>) -> UnitValue<T> {
+impl Operation {
+    pub fn evaluate(&self, attrs: &Attributes) -> Value {
         let v1 = self.value1.evaluate(attrs);
-        let v1_val = v1.value;
-
         let v2 = self.value2.evaluate(attrs);
-        let v2_val = v2.value;
-
-        let unit = v1.unit;
 
         let res = match self.operator {
-            Operator::Addition => v1_val + v2_val,
-            Operator::Subtraction => v1_val - v2_val,
-            Operator::Multiplication => v1_val * v2_val,
-            Operator::Division => v1_val / v2_val,
+            Operator::Addition => v1.evaluate_addition(&v2),
+            Operator::Subtraction => v1.evaluate_subtraction(&v2),
+            Operator::Multiplication => v1.evaluate_multiplication(&v2),
+            Operator::Division => v1.evaluate_division(&v2),
         };
 
-        UnitValue::new_direct(res, unit)
+        res
     }
     pub fn get_dependencies(&self) -> HashSet<Dependency> {
         let mut deps1 = self.value1.get_dependencies();
